@@ -1,0 +1,458 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>MAZE</title>
+    <script type="text/javascript">
+
+var svgns = "http://www.w3.org/2000/svg";
+
+var m = 35;
+var n = 25;
+var mn = m * n;
+var cells;
+var track;
+var topp;
+var left;
+var nxt;
+var xx;
+var yy;
+var place;
+var start;
+var startblob;
+var endd;
+var endblob;
+var where;
+var tabno = 0;
+var img;
+var nav;
+var ok;
+var bad;
+var again;
+
+function init() {
+  img   = document.getElementById( 'img'   );
+  nav   = document.getElementById( 'nav'   );
+  ok    = document.getElementById( 'ok'    );
+  bad   = document.getElementById( 'bad'   );
+  again = document.getElementById( 'again' );
+  document.onkeypress=myhandler;
+  f1();
+}
+
+function frame() {
+  var l = document.createElementNS( svgns, "rect" );
+  l.setAttribute(      "x",       2 );
+  l.setAttribute(      "y",       2 );
+  l.setAttribute(  "width",     700 );
+  l.setAttribute( "height",     500 );
+  l.setAttribute( "stroke", "black" );
+  l.setAttribute( "stroke-width", 4 );
+  l.setAttribute( "fill-opacity", 0 );
+  img.appendChild( l );
+}
+
+
+function hline( x, y ) {
+  var l = document.createElementNS( svgns, "rect" );
+  l.setAttribute( "x", x * 20 );
+  l.setAttribute( "y", y * 20 );
+  l.setAttribute( "width", 24 );
+  l.setAttribute( "height", 4 );
+  l.setAttribute( "fill", "black" );
+  img.appendChild( l );
+}
+
+function vline( x, y ) {
+  var l = document.createElementNS( svgns, "rect" );
+  l.setAttribute( "x", x * 20 );
+  l.setAttribute( "y", y * 20 );
+  l.setAttribute( "width", 4 );
+  l.setAttribute( "height", 24 );
+  l.setAttribute( "fill", "black" );
+  img.appendChild( l );
+}
+
+function blob( x, y, c, id ) {
+  var l = document.createElementNS( svgns, "circle" );
+  l.setAttribute( "cx", x * 20 + 12 );
+  l.setAttribute( "cy", y * 20 + 12 );
+  l.setAttribute( "r", 7 );
+  l.setAttribute( "fill", c );
+  if ( id.length > 0 ) l.setAttribute( "id", id );
+  img.appendChild( l );
+}
+
+function pline( x, y, w, h, kk ) {
+  var l = document.createElementNS( svgns, "rect" );
+  l.setAttribute( "x",      x * 20 + 10 );
+  l.setAttribute( "y",      y * 20 + 10 );
+  l.setAttribute( "width",  w           );
+  l.setAttribute( "height", h           );
+  l.setAttribute( "fill",   "aqua"      );
+  l.setAttribute( "id",     "path" + kk );
+  img.appendChild( l );
+}
+
+function path( k, kk ) {
+  var i = kk - k;
+  if        ( i == -m ) { pline( xx[ kk ], yy[ kk ] ,  4, 24, kk );
+  } else if ( i == -1 ) { pline( xx[ kk ], yy[ kk ] , 24,  4, kk );
+  } else if ( i ==  1 ) { pline( xx[  k ], yy[  k ] , 24,  4, kk );
+  } else if ( i ==  m ) { pline( xx[  k ], yy[  k ] ,  4, 24, kk );
+  }
+}
+
+function build( p ) {
+  var c;
+  var a = [];
+  var n = nxt[ p ].slice( 0 );
+  while ( n.length > 0 ) {
+    a = n.splice( rand( n.length ), 1 );
+    c = a[0];
+    if ( c >= 0 && cells[ c ] < 0 ) {
+      cells[ c ] = p;
+      build( c );
+    }
+  }
+}
+
+function rand ( z ) {
+  return Math.floor( z * Math.random() );
+}
+
+function tab( k, kk, i ) {
+  var dir;
+  var p;
+  var q;
+  var r;
+  switch ( i ) {
+    case 0: dir = 'up';
+            p = new Array( xx[ kk ] * 20 +  5, yy[ kk ] * 20 + 20 );
+            q = new Array( xx[ kk ] * 20 + 12, yy[ kk ] * 20 + 13 );
+            r = new Array( xx[ kk ] * 20 + 19, yy[ kk ] * 20 + 20 );
+	    break;
+    case 1: dir = 'left';
+            p = new Array( xx[ kk ] * 20 + 20, yy[ kk ] * 20 +  5 );
+            q = new Array( xx[ kk ] * 20 + 13, yy[ kk ] * 20 + 12 );
+            r = new Array( xx[ kk ] * 20 + 20, yy[ kk ] * 20 + 19 );
+            break;
+    case 2: dir = 'right';
+            p = new Array( xx[ kk ] * 20 +  4, yy[ kk ] * 20 +  5 );
+            q = new Array( xx[ kk ] * 20 + 11, yy[ kk ] * 20 + 12 );
+            r = new Array( xx[ kk ] * 20 +  4, yy[ kk ] * 20 + 19 );
+            break;
+    case 3: dir = 'down';
+            p = new Array( xx[ kk ] * 20 +  5, yy[ kk ] * 20 +  4 );
+            q = new Array( xx[ kk ] * 20 + 12, yy[ kk ] * 20 + 11 );
+            r = new Array( xx[ kk ] * 20 + 19, yy[ kk ] * 20 +  4 );
+            break;
+  }
+  p = new Array( p.join(), q.join(), r.join() );
+
+  var arrow = document.createElementNS( svgns, "polygon" );
+  arrow.setAttribute( "fill",   "blue"         );
+  arrow.setAttribute( "points", p.join( ' ' )  );
+  arrow.setAttribute( "id"    , "tab" + tabno++ );
+  img.appendChild( arrow );
+
+  var l = document.createElementNS( svgns, "rect" );
+  l.setAttribute( "x",            xx[ kk ] * 20          );
+  l.setAttribute( "y",            yy[ kk ] * 20          );
+  l.setAttribute( "width",        20                     );
+  l.setAttribute( "height",       20                     );
+  l.setAttribute( "fill",         "yellow"               );
+  l.setAttribute( "fill-opacity", 0.0                    );
+  l.setAttribute( "id",           "tab" + tabno++         );
+  l.setAttribute( "onclick",      "move('" + dir + "');" );
+  img.appendChild( l );
+}
+
+function step( k, kk ) {
+  track[ kk ] = k;
+  place = kk;
+  path( k, kk );
+  solve();
+}
+
+function solve() {
+  setTimeout( solver, 11 );
+}
+
+function solver() {
+  var kk;
+  var k = place;
+  var count = 0;
+  var i;
+  if ( where != 99 ) {
+    for ( i in nxt[ k ] ) {
+      kk = nxt[ k ][ i ];
+      if ( kk == endd ) {
+        path( k, endd );
+        img.appendChild( startblob );
+        img.appendChild( endblob );
+        nav.style.display = "none";
+        ok.style.display = "block";
+        bad.style.display = "none";
+        again.style.display = "block";
+        return;
+      }
+      if ( kk >= 0 && track[ kk ] == undefined ) count++;
+    }
+    if ( where == 0 && count > 1 ) {
+      img.appendChild( startblob );
+      blob( xx[ k ], yy[ k ], "blue", "tab" + tabno++ );
+      for ( i = 0; i <= 3; i++ ) {
+        kk = nxt[ k ][ i ];
+        if ( kk >= 0 && ( track[ kk ] == undefined || track[ k ] == kk ) ) {
+          tab( k, kk, i );
+        }
+      }
+      return;
+    }
+    if ( where != 0 ) {
+      where += k;
+      if ( track[ where ] == undefined ) {
+        for ( i in nxt[ k ] ) {
+          if ( nxt[ k ][ i ]  == where ) {
+            step( k, where );
+            where = 0;
+            return;
+          }
+        }
+      }
+      where = 0;
+    }
+    for ( i in nxt[ k ] ) {
+      kk = nxt[ k ][ i ];
+      if ( kk >= 0 && track[ kk ] == undefined ) {
+        step( k, kk );
+        return;
+      }
+    }
+  } else {
+    where = 0;
+  }
+  if ( k == start ) {
+    img.appendChild( startblob );
+    img.appendChild( endblob );
+    nav.style.display = "none";
+    ok.style.display = "none";
+    bad.style.display = "block";
+    again.style.display = "block";
+  } else {
+    document.getElementById( "path" + k ).setAttribute( "fill", "silver" );
+    place = track[ k ];
+    solve();
+  }
+}
+
+function move( dir ) {
+  var i;
+  switch( dir ) {
+    case 'up':    where = -m; i = 0; break;
+    case 'left':  where = -1; i = 1; break;
+    case 'right': where =  1; i = 2; break;
+    case 'down':  where =  m; i = 3; break;
+  }
+  var kk = nxt[ place ][ i ];
+  if ( kk < 0 ) {
+    where = 0;
+    return;
+  }
+  if ( track[ place ] == kk ) where = 99;
+  var img = document.getElementById( "img" );
+  while ( tabno ) {
+    img.removeChild( document.getElementById( "tab" + --tabno ) );
+  }
+  solve();
+}
+
+function f1() {
+  var i;
+  var j;
+  var k;
+  var kk;
+
+  cells = new Array( mn );
+  track = new Array( mn );
+  topp  = new Array( mn );
+  left  = new Array( mn );
+  nxt   = new Array( mn );
+  xx    = new Array( mn );
+  yy    = new Array( mn );
+
+  where = 0;
+  img.innerHTML = '';
+  nav.style.display = "block";
+  ok.style.display = "none";
+  bad.style.display = "none";
+  again.style.display = "none";
+  frame();
+
+  // Build adjacency matrix
+
+  for ( i = 0; i < n; i++ ) {
+    for ( j = 0; j < m; j++ ) {
+      k = i * m + j;					// cell index
+      nxt[ k ] = [ -1, -1, -1, -1 ];
+      if ( i > 0     ) { nxt[ k ][ 0 ] = k - m; }	// cell above
+      if ( j > 0     ) { nxt[ k ][ 1 ] = k - 1; }	// cell to the left
+      if ( j < m - 1 ) { nxt[ k ][ 2 ] = k + 1; }	// cell to the right
+      if ( i < n - 1 ) { nxt[ k ][ 3 ] = k + m; }	// cell below
+      cells[ k ] = -1;
+      xx[ k ] = j;
+      yy[ k ] = i;
+    }
+  }
+
+  // Pick and initialise "seed" cell.  Seed cell is its own parent.
+
+  k = rand( mn );
+  cells[ k ] = k;
+
+  // Build the maze
+
+  build( k );
+
+  // Build print Arrays
+
+  for ( k = 0; k < mn; k++ ) {
+    topp[ k ] = 1;
+    left[ k ] = 1;
+  }
+  for ( k = 0; k < mn; k++ ) {
+    var v = cells[ k ];
+    if ( v < k ) {
+      if ( v < k - 1 ) {
+        topp[ k ] = 0;
+      } else {
+        left[ k ] = 0;
+      }
+    } else if ( v > k ) {
+      if ( v > k + 1 ) {
+        topp[ k + m ] = 0;
+      } else {
+        left[ k + 1 ] = 0;
+      }
+    }
+  }
+
+  // Find start and end
+
+  var ends = new Array( mn );
+  for ( k = 0; k < mn; k++ ) { ends[ k ] = true; }
+  for ( k = 0; k < mn; k++ ) { ends[ cells[ k ] ] = false; }
+  for ( start = 0;     start < mn; start++ ) if ( ends[ start ] ) break;
+  for ( endd = mn - 1; endd >= 0;  endd--  ) if ( ends[ endd ]  ) break;
+  ends[ endd ] = false;
+
+  // Print out the maze
+
+  k = 0;
+  for ( i = 0; i < n; i++ ) {
+    for ( j = 0; j < m; j++ ) {
+      if ( i > 0 && topp[ k ] ) hline( j, i );
+      if ( j > 0 && left[ k ] ) vline( j, i );
+      k++;
+    }
+  }
+  blob( xx[ endd ], yy[ endd ], "red", "endd" );
+  endblob = document.getElementById( "endd" );
+
+  // Eliminate unreachable neighbours, and obvious dead ends.
+
+  var flag;
+  for ( k = 0; k < mn; k++ ) {
+    for ( j = 0; j <= 3; j++ ) {
+      kk = nxt[ k ][ j ];
+      if ( kk < 0 ) continue;
+      i = kk - k;
+      if ( ends[ kk ]            ||
+           i == -m && topp[  k ] ||
+           i == -1 && left[  k ] ||
+           i ==  1 && left[ kk ] ||
+           i ==  m && topp[ kk ] )
+        nxt[ k ][ j ] = -1;
+    }
+  }
+
+  // Solve maze
+
+  place = start;
+  track[ start ] = start;
+  blob( xx[ start ], yy[ start ], "green", "start" );
+  startblob = document.getElementById( "start" );
+  solve();
+
+}
+
+function myhandler( event ) {
+  var e = event || window.event;        // key event object
+  switch( e.keyCode ) {
+    case 37: move( 'left'  ); break;
+    case 38: move( 'up'    ); break;
+    case 39: move( 'right' ); break;
+    case 40: move( 'down'  ); break;
+  }
+}
+
+    </script>
+    <style type="text/css">
+
+  .center	{ display:		block;
+		  margin:		0 auto;
+		}
+
+  .b		{ display:		block;
+		  width:		30px;
+		  height:		30px;
+		  box-sizing:		border-box;
+		  text-align:		center;
+		  border:		2px outset #DDD;
+		  background-color:	#DDD;
+		  padding:		3px;
+		}
+
+  .c		{ margin:		0 auto;
+		  clear:		both;
+		}
+
+  .l		{ float:		left;
+		}
+
+  .r		{ float:		right;
+		}
+
+  #img		{ display:		block;
+		  margin:		20px auto;
+		}
+
+  #nav		{ width:		90px;
+		  margin:		0 auto;
+		}
+
+  h1		{ text-align:		center;	}
+
+    </style>
+  </head>
+
+  <body onload="init()">
+
+    <svg id="img" width="704" height="504"></svg>
+
+    <div id="nav">
+      <div class="b c" onclick="move('up')">&#9650;</div>
+      <div class="b l" onclick="move('left')">&#9664;</div>
+      <div class="b r" onclick="move('right')">&#9654;</div>
+      <div class="b c" onclick="move('down')">&#9660;</div>
+    </div>
+
+
+    <h1 id="ok">Congratulations, you have completed the maze!</h1>
+
+    <h1 id="bad">Oops - you clicked "back" while on the main path!</h1>
+
+    <button id="again" class="center" type="button" onclick="f1();">Play again</button>
+
+  </body>
+</html>
